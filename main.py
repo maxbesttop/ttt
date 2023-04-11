@@ -1,5 +1,10 @@
-ANUM = 5
-ANUMPR = 5
+Rash = open("rash.txt", 'r')
+Doh = open("prih.txt", 'r')
+ANUM = int(Rash.read())
+ANUMPR = int(Doh.read())
+Rash.close()
+Doh.close()
+print(ANUM, ANUMPR)
 import apiclient.discovery
 import httplib2
 from oauth2client.service_account import ServiceAccountCredentials
@@ -170,6 +175,7 @@ def PrihodPlus(message):
     if message.text == "Назад":
         backtomenu(message)
     else:
+        Doh = open("prih.txt", 'w')
         global ANUMPR
         global typep
         if typep == "Nal":
@@ -190,7 +196,8 @@ def PrihodPlus(message):
         }).execute()
         OK(message)
         ANUMPR += 1
-
+        Doh.write(str(ANUMPR))
+        Doh.close()
 
 def Fam(message):
     if message.text == "Назад":
@@ -274,6 +281,7 @@ def Way(message):
 
 
 def mines(message):
+    Rash = open("rash.txt", 'w')
     global ANUM
     global typee
     if typee == 'CondNal':
@@ -300,7 +308,8 @@ def mines(message):
     }).execute()
     OK(message)
     ANUM += 1
-
+    Rash.write(str(ANUM))
+    Rash.close()
 #Wallet
 def wallet(message):
     ranges = ["Лист номер один!P407:R407"]  #
@@ -335,6 +344,8 @@ def dohod(message):
 
 def clear(message):
     if message.text == 'ДА':
+        Rash = open("rash.txt", 'w')
+        Doh = open("prih.txt", 'w')
         clearrash()
         cleardoh()
         bot.send_message(message.chat.id, "Таблица отчищенна")
@@ -342,7 +353,10 @@ def clear(message):
         global ANUMPR
         ANUM = 5
         ANUMPR = 5
-
+        Rash.write(str(ANUM))
+        Doh.write(str(ANUMPR))
+        Rash.close()
+        Doh.close()
 def cleardoh():
     results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
         "valueInputOption": "USER_ENTERED",
