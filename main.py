@@ -1,5 +1,5 @@
-ANUM = 4
-ANUMPR = 4
+ANUM = 5
+ANUMPR = 5
 import apiclient.discovery
 import httplib2
 from oauth2client.service_account import ServiceAccountCredentials
@@ -7,13 +7,10 @@ import telebot
 from telebot import types
 from datetime import datetime
 
-ids = [1144292157]
 bot = telebot.TeleBot("5867116281:AAH6zMU3ouNhdQF4_tA6sQ1RdikfaYHxckk")
 CREDENTIALS_FILE = 'leafy-ether-382619-94d1b8bb4a78.json'  # Имя файла с закрытым ключом, вы должны подставить свое
 spreadsheetId = "1VSnFajWGEM7_-FngJcdWw24BZ4RwtIsZxkyVy5IAy0g"
-credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE,
-                                                               ['https://www.googleapis.com/auth/spreadsheets',
-                                                                'https://www.googleapis.com/auth/drive'])
+credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'])
 httpAuth = credentials.authorize(httplib2.Http())  # Авторизуемся в системе
 service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)  # Выбираем работу с таблицами и 4 версию API
 
@@ -26,9 +23,13 @@ def start(message):
         murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         item1 = types.KeyboardButton("Расходы")
         item2 = types.KeyboardButton("Приходы")
-        murkup.add(item1, item2)
+        wal = types.KeyboardButton('Кошелёк')
+        viruchka = types.KeyboardButton('Выручка')
+        dohod = types.KeyboardButton('Доход')
+        clear = types.KeyboardButton('Отчистить таблицу')
+        ostatok = types.KeyboardButton('Ввод остатков')
+        murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
         bot.send_message(message.chat.id, "Выбери", reply_markup=murkup)
-
 
 @bot.message_handler(content_types=['text'])
 def bot_message(message):
@@ -36,6 +37,15 @@ def bot_message(message):
     global spreadsheetId
     global CREDENTIALS_FILE
     global ids  # массив с ID
+    if message.text == '25':
+        f = open('text.txt', 'a')
+        f.write(',' + str(message.chat.id))
+        f.close()
+        bot.send_message(message.chat.id, 'Accesses granted')
+        dontunderstand(message)
+    v = open('text.txt')
+    tex = v.read()
+    ids = list(map(int, tex.split(",")))
     if message.from_user.id not in ids:
         bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
     else:
@@ -44,15 +54,17 @@ def bot_message(message):
                 murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
                 item1 = types.KeyboardButton("Семья")
                 item2 = types.KeyboardButton("Кондитерка")
-                murkup.add(item1, item2)
+                backt = types.KeyboardButton('Назад')
+                murkup.add(item1, item2, backt)
                 bot.send_message(message.chat.id, "Расходы", reply_markup=murkup)
 
-            if message.text == 'Приходы':
+            elif message.text == 'Приходы':
                 murkup2 = types.ReplyKeyboardMarkup(resize_keyboard=True)
                 Nal = types.KeyboardButton("Наличка")
                 Cardbel = types.KeyboardButton("Карта(Беларусьбанк)")
                 Cardprior = types.KeyboardButton("Карта(Приорбанк)")
-                murkup2.add(Nal, Cardbel, Cardprior)
+                backt = types.KeyboardButton('Назад')
+                murkup2.add(Nal, Cardbel, Cardprior, backt)
                 sent = bot.send_message(message.chat.id, "Куда поступление?", reply_markup=murkup2)
                 bot.register_next_step_handler(sent, Prihod)
 
@@ -61,7 +73,8 @@ def bot_message(message):
                 Nal = types.KeyboardButton("Наличка")
                 Cardbel = types.KeyboardButton("Карта(Беларусьбанк)")
                 Cardprior = types.KeyboardButton("Карта(Приорбанк)")
-                murkup2.add(Nal, Cardbel, Cardprior)
+                backt = types.KeyboardButton('Назад')
+                murkup2.add(Nal, Cardbel, Cardprior, backt)
                 sent = bot.send_message(message.chat.id, "Откуда списание?", reply_markup=murkup2)
                 bot.register_next_step_handler(sent, Fam)
 
@@ -70,365 +83,397 @@ def bot_message(message):
                 Nal = types.KeyboardButton("Наличка")
                 Cardbel = types.KeyboardButton("Карта(Беларусьбанк)")
                 Cardprior = types.KeyboardButton("Карта(Приорбанк)")
-                murkup2.add(Nal, Cardbel, Cardprior)
+                backt = types.KeyboardButton('Назад')
+                murkup2.add(Nal, Cardbel, Cardprior, backt)
                 sent = bot.send_message(message.chat.id, "Откуда списание?", reply_markup=murkup2)
                 bot.register_next_step_handler(sent, Cond)
 
+            elif message.text == 'Кошелёк':
+                wallet(message)
+
+            elif message.text == 'Выручка':
+                viruchka(message)
+
+            elif message.text == 'Доход':
+                dohod(message)
+
+            elif message.text == 'Отчистить таблицу':
+                sent = bot.send_message(message.chat.id, "Точно отчистить таблицу? Подтвердите сообщением ДА")
+                bot.register_next_step_handler(sent, clear)
+
+            elif message.text == 'Ввод остатков':
+                sent = bot.send_message(message.chat.id, "Введите остаток налички")
+                bot.register_next_step_handler(sent, NalOST)
+
+            elif message.text == 'Назад':
+                backtomenu(message)
+
+
+            elif message.text == "Добавить gmail":
+                sent = bot.send_message(message.chat.id, "Введите gmail")
+                bot.register_next_step_handler(sent, addsheetuser)
+
+            elif message.text == "25":
+                pass
+
+            else:
+                bot.send_message(message.chat.id, "Я тебя не понял")
+                dontunderstand(message)
+
 
 def Prihod(message):
-    global ids  # массив с ID
-    if message.from_user.id not in ids:
-        bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
+    if message.text == "Назад":
+        backtomenu(message)
     else:
+        global typep
         if message.text == 'Наличка':
             sent = bot.send_message(message.chat.id, "Имя клиента")
-            bot.register_next_step_handler(sent, PrihodNal)
+            typep = "Nal"
+            bot.register_next_step_handler(sent, PrihodWay)
 
         elif message.text == 'Карта(Беларусьбанк)':
             sent = bot.send_message(message.chat.id, "Имя клиента")
-            bot.register_next_step_handler(sent, PrihodBel)
+            typep = "Bel"
+            bot.register_next_step_handler(sent, PrihodWay)
 
         elif message.text == 'Карта(Приорбанк)':
             sent = bot.send_message(message.chat.id, "Имя клиента")
-            bot.register_next_step_handler(sent, PrihodPrior)
+            typep = "Prior"
+            bot.register_next_step_handler(sent, PrihodWay)
 
+        elif message.text == "Назад":
+            backtomenu(message)
 
-def Fam(message):
-    global ids  # массив с ID
-    if message.from_user.id not in ids:
-        bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
-    else:
-        if message.text == 'Наличка':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, FamNal)
-
-        elif message.text == 'Карта(Беларусьбанк)':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, FamBel)
-
-        elif message.text == 'Карта(Приорбанк)':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, FamPrior)
-
-
-def Cond(message):
-    global ids  # массив с ID
-    if message.from_user.id not in ids:
-        bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
-    else:
-        if message.text == 'Наличка':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, CondNal)
-
-        elif message.text == 'Карта(Беларусьбанк)':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, CondBel)
-
-        elif message.text == 'Карта(Приорбанк)':
-            sent = bot.send_message(message.chat.id, "На что потратили")
-            bot.register_next_step_handler(sent, CondPrior)
 
 
 # Приходы
-def PrihodNal(message):
-    global ANUMPR
-    current_datetime = datetime.now()
-    Name = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Name]
-    sent = bot.send_message(message.chat.id, "Сколько получили?")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!J" + str(ANUMPR) + ":K400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, PrihodNalPlus)
+def PrihodWay(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        global ANUMPR
+        current_datetime = datetime.now()
+        Name = message.text
+        mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Name]
+        sent = bot.send_message(message.chat.id, "Сколько получили?")
+        results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+            "valueInputOption": "USER_ENTERED",
+            "data": [
+                {"range": "Лист номер один!J" + str(ANUMPR) + ":K400",
+                 "majorDimension": "ROWS",
+                 "values": [mas]}
+            ]
+        }).execute()
+        bot.register_next_step_handler(sent, PrihodPlus)
+
+def PrihodPlus(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        global ANUMPR
+        global typep
+        if typep == "Nal":
+            typep = "L"
+        elif typep == "Bel":
+            typep = "M"
+        elif typep == "Prior":
+            typep = "N"
+        mines = message.text
+        mas = [mines]
+        results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+            "valueInputOption": "USER_ENTERED",
+            "data": [
+                {"range": "Лист номер один!" + typep + str(ANUMPR) + ":" + typep +"400",
+                 "majorDimension": "ROWS",
+                 "values": [mas]}
+            ]
+        }).execute()
+        OK(message)
+        ANUMPR += 1
 
 
-def PrihodBel(message):
-    global ANUMPR
-    current_datetime = datetime.now()
-    Name = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Name]
-    sent = bot.send_message(message.chat.id, "Сколько получили?")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!J" + str(ANUMPR) + ":K400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, PrihodBelPlus)
+def Fam(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        global ids  # массив с ID
+        global typee
+        if message.from_user.id not in ids:
+            bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
+        else:
+            if message.text == 'Наличка':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "FamNal"
+                bot.register_next_step_handler(sent, Way)
 
+            elif message.text == 'Карта(Беларусьбанк)':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "FamBel"
+                bot.register_next_step_handler(sent, Way)
 
-def PrihodPrior(message):
-    global ANUMPR
-    Name = message.text
-    current_datetime = datetime.now()
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Name]
-    sent = bot.send_message(message.chat.id, "Сколько получили?")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!J" + str(ANUMPR) + ":K400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, PrihodPriorPlus)
+            elif message.text == 'Карта(Приорбанк)':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "FamPrior"
+                bot.register_next_step_handler(sent, Way)
 
-
-def PrihodNalPlus(message):
-    global ANUMPR
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!L" + str(ANUMPR) + ":L400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUMPR += 1
-
-
-def PrihodBelPlus(message):
-    global ANUMPR
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!M" + str(ANUMPR) + ":M400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUMPR += 1
-
-
-def PrihodPriorPlus(message):
-    global ANUMPR
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!N" + str(ANUMPR) + ":N400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUMPR += 1
-
-
-# Семья расходы
-def FamNal(message):
-    current_datetime = datetime.now()
-    Why = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, FamNalmines)
-
-
-def FamBel(message):
-    Why = message.text
-    current_datetime = datetime.now()
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, FamBelmines)
-
-
-def FamPrior(message):
-    current_datetime = datetime.now()
-    Why = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, FamPriormines)
-
-
-def FamNalmines(message):
-    global ANUM
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!C" + str(ANUM) + ":C400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUM += 1
-
-
-def FamBelmines(message):
-    global ANUM
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!D" + str(ANUM) + ":D400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUM += 1
-
-
-def FamPriormines(message):
-    global ANUM
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!E" + str(ANUM) + ":E400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    OK(message)
-    ANUM += 1
-
+            elif message.text == "Назад":
+                backtomenu(message)
 
 # Кондитерка расходы
-def CondNal(message):
-    current_datetime = datetime.now()
-    Why = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, CondNalmines)
+def Cond(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        global typee
+        global ids  # массив с ID
+        if message.from_user.id not in ids:
+            bot.send_message(message.chat.id, 'Ошибся адресом, дружок')
+        else:
+            if message.text == 'Наличка':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "CondNal"
+                bot.register_next_step_handler(sent, Way)
 
 
-def CondBel(message):
-    current_datetime = datetime.now()
-    Why = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, CondBelmines)
+            elif message.text == 'Карта(Беларусьбанк)':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "CondBel"
+                bot.register_next_step_handler(sent, Way)
 
 
-def CondPrior(message):
-    current_datetime = datetime.now()
-    Why = message.text
-    mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(current_datetime.hour) + ':' + str(current_datetime.minute), Why]
-    sent = bot.send_message(message.chat.id, "Сколько потратили:")
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!A" + str(ANUM) + ":B400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
-        ]
-    }).execute()
-    bot.register_next_step_handler(sent, CondPriormines)
+            elif message.text == 'Карта(Приорбанк)':
+                sent = bot.send_message(message.chat.id, "На что потратили")
+                typee = "CondPrior"
+                bot.register_next_step_handler(sent, Way)
+
+            elif message.text == "Назад":
+                backtomenu(message)
 
 
-def CondNalmines(message):
+def Way(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        if message.text == "Назад":
+            backtomenu(message)
+        else:
+            current_datetime = datetime.now()
+            Why = message.text
+            mas = [str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year) + " " + str(
+                current_datetime.hour) + ':' + str(current_datetime.minute), Why]
+            sent = bot.send_message(message.chat.id, "Сколько потратили:")
+            results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+                "valueInputOption": "USER_ENTERED",
+                "data": [
+                    {"range": "Лист номер один!A" + str(ANUM) + ":B400",
+                     "majorDimension": "ROWS",
+                     "values": [mas]}
+                ]
+            }).execute()
+            bot.register_next_step_handler(sent, mines)
+
+
+def mines(message):
     global ANUM
+    global typee
+    if typee == 'CondNal':
+        typee = "F"
+    elif typee == 'CondBel':
+        typee = "G"
+    elif typee == "CondPrior":
+        typee = "H"
+    elif typee == "FamNal":
+        typee = "C"
+    elif typee == "FamBel":
+        typee = "D"
+    elif typee == "FamPrior":
+        typee = "E"
     mines = message.text
     mas = [mines]
     results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
         "valueInputOption": "USER_ENTERED",
         "data": [
-            {"range": "Лист номер один!F" + str(ANUM) + ":F400",
-             "majorDimension": "ROWS",
-             "values": [mas]}
+            {"range": "Лист номер один!" + typee + str(ANUM) + ":" + typee + "400",
+            "majorDimension": "ROWS",
+            "values": [mas]}
         ]
     }).execute()
     OK(message)
     ANUM += 1
 
+#Wallet
+def wallet(message):
+    ranges = ["Лист номер один!P407:R407"]  #
+    results = service.spreadsheets().values().batchGet(spreadsheetId=spreadsheetId,
+                                                       ranges=ranges,
+                                                       valueRenderOption='FORMATTED_VALUE',
+                                                       dateTimeRenderOption='FORMATTED_STRING').execute()
+    sheet_values = results['valueRanges'] [0] ['values']
+    sheet_values = sheet_values[0]
+    bot.send_message(message.chat.id, 'Наличка ' + str(sheet_values[0]) + '       ' +'Беларусьбанк ' + str(sheet_values[1]) + '       ' + 'Приор ' + str(sheet_values[2]))
 
-def CondBelmines(message):
-    global ANUM
-    mines = message.text
-    mas = [mines]
+#выручка
+def viruchka(message):
+    ranges = ["Лист номер один!Q409"]  #
+    results = service.spreadsheets().values().batchGet(spreadsheetId=spreadsheetId,
+                                                       ranges=ranges,
+                                                       valueRenderOption='FORMATTED_VALUE',
+                                                       dateTimeRenderOption='FORMATTED_STRING').execute()
+    sheet_values = results['valueRanges'][0]['values']
+    sheet_values = sheet_values[0]
+    bot.send_message(message.chat.id, 'Выручка ' + str(sheet_values[0]))
+
+def dohod(message):
+    ranges = ["Лист номер один!Q410"]  #
+    results = service.spreadsheets().values().batchGet(spreadsheetId=spreadsheetId,
+                                                       ranges=ranges,
+                                                       valueRenderOption='FORMATTED_VALUE',
+                                                       dateTimeRenderOption='FORMATTED_STRING').execute()
+    sheet_values = results['valueRanges'][0]['values']
+    sheet_values = sheet_values[0]
+    bot.send_message(message.chat.id, 'Доход ' + str(sheet_values[0]))
+
+def clear(message):
+    if message.text == 'ДА':
+        clearrash()
+        cleardoh()
+        bot.send_message(message.chat.id, "Таблица отчищенна")
+        global ANUM
+        global ANUMPR
+        ANUM = 5
+        ANUMPR = 5
+
+def cleardoh():
+    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+        "valueInputOption": "USER_ENTERED",
+        # Данные воспринимаются, как вводимые пользователем (считается значение формул)
+        "data": [
+            {"range": "Лист номер один!J5:N400",
+             "majorDimension": "ROWS",  # Сначала заполнять строки, затем столбцы
+             "values": [["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "",""],["", "", "", "","",],["", "", "", "","",]]}
+        ]
+    }).execute()
+
+def clearrash():
+    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+        "valueInputOption": "USER_ENTERED",
+        # Данные воспринимаются, как вводимые пользователем (считается значение формул)
+        "data": [
+            {"range": "Лист номер один!A4:H400",
+             "majorDimension": "ROWS",  # Сначала заполнять строки, затем столбцы
+             "values": [
+                 ["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],
+["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""],["", "", "", "", "", "", "", ""]
+             ]}
+        ]
+    }).execute()
+
+def dateOST():
+    current_datetime = datetime.now()
     results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
         "valueInputOption": "USER_ENTERED",
         "data": [
-            {"range": "Лист номер один!G" + str(ANUM) + ":G400",
+            {"range": "Лист номер один!J4",
              "majorDimension": "ROWS",
-             "values": [mas]}
+             "values": [[str(current_datetime.day) + "." + str(current_datetime.month) + "." + str(current_datetime.year)]]}
         ]
     }).execute()
-    OK(message)
-    ANUM += 1
 
+def NalOST(message):
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        Nal = message.text
+        results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+            "valueInputOption": "USER_ENTERED",
+            "data": [
+                {"range": "Лист номер один!L4",
+                 "majorDimension": "ROWS",
+                 "values": [[str(Nal)]]}
+            ]
+        }).execute()
+        dateOST()
+        sent = bot.send_message(message.chat.id, "Введите остаток на карте Беларусьбанка")
+        bot.register_next_step_handler(sent, BelOST)
 
-def CondPriormines(message):
-    global ANUM
-    mines = message.text
-    mas = [mines]
+def BelOST(message):
+    Bel = str(message.text)
     results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
         "valueInputOption": "USER_ENTERED",
         "data": [
-            {"range": "Лист номер один!H" + str(ANUM) + ":H400",
+            {"range": "Лист номер один!M4",
              "majorDimension": "ROWS",
-             "values": [mas]}
+             "values": [[str(Bel)]]}
+        ]
+    }).execute()
+    sent = bot.send_message(message.chat.id, "Введите остаток на карте Приорбанка")
+    bot.register_next_step_handler(sent, PriorOST)
+
+
+def PriorOST(message):
+    Prior = str(message.text)
+    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+        "valueInputOption": "USER_ENTERED",
+        "data": [
+            {"range": "Лист номер один!N4",
+             "majorDimension": "ROWS",
+             "values": [[str(Prior)]]}
         ]
     }).execute()
     OK(message)
-    ANUM += 1
 
-
+#OK
 def OK(message):
+    global ids
     murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Расходы")
     item2 = types.KeyboardButton("Приходы")
-    murkup.add(item1, item2)
-    bot.send_message(message.chat.id, "Записанно", reply_markup=murkup)
+    wal = types.KeyboardButton('Кошелёк')
+    viruchka = types.KeyboardButton('Выручка')
+    dohod = types.KeyboardButton('Доход')
+    clear = types.KeyboardButton('Отчистить таблицу')
+    ostatok = types.KeyboardButton('Ввод остатков')
+    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+    i = 0
+    for i in range(len(ids) - 1):
+        print(ids[i])
+        bot.send_message(ids[i], "Записанно", reply_markup=murkup)
+    wallet(message)
 
+
+def backtomenu(message):
+    murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = types.KeyboardButton("Расходы")
+    item2 = types.KeyboardButton("Приходы")
+    wal = types.KeyboardButton('Кошелёк')
+    viruchka = types.KeyboardButton('Выручка')
+    dohod = types.KeyboardButton('Доход')
+    clear = types.KeyboardButton('Отчистить таблицу')
+    ostatok = types.KeyboardButton('Ввод остатков')
+    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+    bot.send_message(message.chat.id, "Назад", reply_markup=murkup)
+
+def addsheetuser(message):
+    gmail = message.text
+    driveService = apiclient.discovery.build('drive', 'v3',
+                                             http=httpAuth)  # Выбираем работу с Google Drive и 3 версию API
+    access = driveService.permissions().create(
+        fileId=spreadsheetId,
+        body={'type': 'user', 'role': 'writer', 'emailAddress': gmail},  # Открываем доступ на редактирование
+        fields='id'
+    ).execute()
+
+
+def dontunderstand(message):
+    murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    item1 = types.KeyboardButton("Расходы")
+    item2 = types.KeyboardButton("Приходы")
+    wal = types.KeyboardButton('Кошелёк')
+    viruchka = types.KeyboardButton('Выручка')
+    dohod = types.KeyboardButton('Доход')
+    clear = types.KeyboardButton('Отчистить таблицу')
+    ostatok = types.KeyboardButton('Ввод остатков')
+    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+    bot.send_message(message.chat.id, "Выбери", reply_markup=murkup)
 
 bot.infinity_polling()
