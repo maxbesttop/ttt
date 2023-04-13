@@ -33,7 +33,8 @@ def start(message):
         dohod = types.KeyboardButton('Доход')
         clear = types.KeyboardButton('Отчистить таблицу')
         ostatok = types.KeyboardButton('Ввод остатков')
-        murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+        tablica = types.KeyboardButton('Получить ссылку')
+        murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok, tablica)
         bot.send_message(message.chat.id, "Выбери", reply_markup=murkup)
 
 @bot.message_handler(content_types=['text'])
@@ -120,6 +121,9 @@ def bot_message(message):
 
             elif message.text == "25":
                 pass
+
+            elif message.text == "Получить ссылку":
+                bot.send_message(message.chat.id, "https://docs.google.com/spreadsheets/d/1VSnFajWGEM7_-FngJcdWw24BZ4RwtIsZxkyVy5IAy0g")
 
             else:
                 bot.send_message(message.chat.id, "Я тебя не понял")
@@ -477,7 +481,8 @@ def backtomenu(message):
     dohod = types.KeyboardButton('Доход')
     clear = types.KeyboardButton('Отчистить таблицу')
     ostatok = types.KeyboardButton('Ввод остатков')
-    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+    tablica = types.KeyboardButton('Получить ссылку')
+    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok, tablica)
     bot.send_message(message.chat.id, "Назад", reply_markup=murkup)
 
 def addsheetuser(message):
@@ -500,7 +505,8 @@ def dontunderstand(message):
     dohod = types.KeyboardButton('Доход')
     clear = types.KeyboardButton('Отчистить таблицу')
     ostatok = types.KeyboardButton('Ввод остатков')
-    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
+    tablica = types.KeyboardButton('Получить ссылку')
+    murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok, tablica)
     bot.send_message(message.chat.id, "Выбери", reply_markup=murkup)
 
 bot.infinity_polling()
