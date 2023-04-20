@@ -1,10 +1,22 @@
+last = ["", "", ""]
 Rash = open("rash.txt", 'r')
 Doh = open("prih.txt", 'r')
-ANUM = int(Rash.read())
-ANUMPR = int(Doh.read())
+
+z = Rash.read()
+t = ''
+for i in range(0, len(z)):
+    t = t + str(z[i])
+    ANUM = int(t)
+
+z = Doh.read()
+t = ''
+for i in range(0,len(z)):
+    t = t + str(z[i])
+    ANUMPR = int(t)
+
 Rash.close()
 Doh.close()
-print(ANUM, ANUMPR)
+
 import apiclient.discovery
 import httplib2
 from oauth2client.service_account import ServiceAccountCredentials
@@ -12,9 +24,14 @@ import telebot
 from telebot import types
 from datetime import datetime
 
-bot = telebot.TeleBot("6161078652:AAFx8OrdeyP9C0gfEv40Tux3kYE13KFM3rw")
+
+v = open('text.txt')
+tex = v.read()
+ids = list(map(int, tex.split(",")))
+
+bot = telebot.TeleBot("6161078652:AAFx8OrdeyP9C0gfEv40Tux3kYE13KFM3rw") #6077403416:AAGRHu460Ln7tiFop7fhwAIm0ZQXdi6S8GE
 CREDENTIALS_FILE = 'leafy-ether-382619-94d1b8bb4a78.json'  # Имя файла с закрытым ключом, вы должны подставить свое
-spreadsheetId = "1VSnFajWGEM7_-FngJcdWw24BZ4RwtIsZxkyVy5IAy0g"
+spreadsheetId = "1VSnFajWGEM7_-FngJcdWw24BZ4RwtIsZxkyVy5IAy0g" #1H-frX1GnSexvvzVE2P8T4Tszh-V-8CVqK0WyJ_bEhrk
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'])
 httpAuth = credentials.authorize(httplib2.Http())  # Авторизуемся в системе
 service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)  # Выбираем работу с таблицами и 4 версию API
@@ -173,35 +190,47 @@ def PrihodWay(message):
                  "values": [mas]}
             ]
         }).execute()
+        last[1] = Name
         bot.register_next_step_handler(sent, PrihodPlus)
 
 def PrihodPlus(message):
     if message.text == "Назад":
         backtomenu(message)
     else:
-        Doh = open("prih.txt", 'w')
-        global ANUMPR
-        global typep
-        if typep == "Nal":
-            typep = "L"
-        elif typep == "Bel":
-            typep = "M"
-        elif typep == "Prior":
-            typep = "N"
-        mines = message.text
-        mas = [mines]
-        results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-            "valueInputOption": "USER_ENTERED",
-            "data": [
-                {"range": "Лист номер один!" + typep + str(ANUMPR) + ":" + typep +"400",
-                 "majorDimension": "ROWS",
-                 "values": [mas]}
-            ]
-        }).execute()
-        OK(message)
-        ANUMPR += 1
-        Doh.write(str(ANUMPR))
-        Doh.close()
+        try:
+            mines = int(message.text)
+            mas = [str(mines)]
+            Doh = open("prih.txt", 'w')
+            global lastr1
+            global ANUMPR
+            global typep
+            if typep == "Nal":
+                typep = "L"
+                last[0] = "наличка"
+            elif typep == "Bel":
+                typep = "M"
+                last[0] = "беларусьбанк"
+            elif typep == "Prior":
+                typep = "N"
+                last[0] = "приор"
+            last[2] = str(mines)
+            results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+                "valueInputOption": "USER_ENTERED",
+                "data": [
+                    {"range": "Лист номер один!" + typep + str(ANUMPR) + ":" + typep +"400",
+                     "majorDimension": "ROWS",
+                     "values": [mas]}
+                ]
+            }).execute()
+            last.insert(0, "Приходы")
+            lastr1 = str(last[0]) + ", " + str(last[1]) + ", " + str(last[2] + ", " + last[3])
+            OK(message)
+            ANUMPR += 1
+            Doh.write(str(ANUMPR))
+            Doh.close()
+        except:
+            sent = bot.send_message(message.chat.id, "Введите целое число")
+            bot.register_next_step_handler(sent, PrihodPlus)
 
 def Fam(message):
     if message.text == "Назад":
@@ -262,6 +291,8 @@ def Cond(message):
 
 
 def Way(message):
+    global last
+    global ANUM
     if message.text == "Назад":
         backtomenu(message)
     else:
@@ -281,39 +312,59 @@ def Way(message):
                      "values": [mas]}
                 ]
             }).execute()
+            last[1] = Why
             bot.register_next_step_handler(sent, mines)
 
 
 def mines(message):
-    Rash = open("rash.txt", 'w')
-    global ANUM
-    global typee
-    if typee == 'CondNal':
-        typee = "F"
-    elif typee == 'CondBel':
-        typee = "G"
-    elif typee == "CondPrior":
-        typee = "H"
-    elif typee == "FamNal":
-        typee = "C"
-    elif typee == "FamBel":
-        typee = "D"
-    elif typee == "FamPrior":
-        typee = "E"
-    mines = message.text
-    mas = [mines]
-    results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
-        "valueInputOption": "USER_ENTERED",
-        "data": [
-            {"range": "Лист номер один!" + typee + str(ANUM) + ":" + typee + "400",
-            "majorDimension": "ROWS",
-            "values": [mas]}
-        ]
-    }).execute()
-    ANUM += 1
-    Rash.write(str(ANUM))
-    Rash.close()
-    OK(message)
+    if message.text == "Назад":
+        backtomenu(message)
+    else:
+        Rash = open("rash.txt", 'w')
+        global ANUM
+        global typee
+        global last
+        global lastr1
+        if typee == 'CondNal':
+            typee = "F"
+            last[0] = "Кондитерка, наличка"
+        elif typee == 'CondBel':
+            typee = "G"
+            last[0] = "Кондитерка, беларусьбанк"
+        elif typee == "CondPrior":
+            typee = "H"
+            last[0] = "Кондитерка, приор"
+        elif typee == "FamNal":
+            typee = "C"
+            last[0] = "Семья, наличка"
+        elif typee == "FamBel":
+            typee = "D"
+            last[0] = "Семья, беларусьбанк"
+        elif typee == "FamPrior":
+            typee = "E"
+            last[0] = "Семья, приор"
+        try:
+            cost = int(message.text)
+            mas = [cost]
+            last[2] = str(cost)
+            results = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body={
+                "valueInputOption": "USER_ENTERED",
+                "data": [
+                    {"range": "Лист номер один!" + typee + str(ANUM) + ":" + typee + "400",
+                     "majorDimension": "ROWS",
+                     "values": [mas]}
+                ]
+            }).execute()
+            ANUM += 1
+            Rash.write(str(ANUM))
+            Rash.close()
+            last.insert(0, "Расходы")
+            lastr1 = str(last[0]) + ", " + str(last[1]) + ", " + str(last[2] + ", " + last[3])
+            OK(message)
+        except:
+            sent = bot.send_message(message.chat.id, "Введите целое число")
+            bot.register_next_step_handler(sent, mines)
+
 
 #Wallet
 def wallet(message):
@@ -457,6 +508,7 @@ def PriorOST(message):
 #OK
 def OK(message):
     global ids
+    global lastr1
     murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     item1 = types.KeyboardButton("Расходы")
     item2 = types.KeyboardButton("Приходы")
@@ -467,10 +519,11 @@ def OK(message):
     ostatok = types.KeyboardButton('Ввод остатков')
     murkup.add(item1, item2, wal, viruchka, dohod, clear, ostatok)
     for i in range(len(ids)):
-        print(ids[i])
         idp = ids[i]
         bot.send_message(ids[i], "Записанно", reply_markup=murkup)
+        bot.send_message(ids[i], lastr1)
         walletOK(message, idp)
+
 
 def backtomenu(message):
     murkup = types.ReplyKeyboardMarkup(resize_keyboard=True)
